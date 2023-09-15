@@ -7,7 +7,7 @@ import os
 from utils import scale_image, blit_rotate_center, blit_text_center
 pygame.font.init()
 
-GRASS = scale_image(pygame.image.load("ai_car/imgs/grass.jpg"), 2)
+BLOCK = scale_image(pygame.image.load("ai_car/imgs/back.png"), 3)
 TRACK = scale_image(pygame.image.load("ai_car/imgs/track.png"), 0.9)
 CROSS = scale_image(pygame.image.load("ai_car/imgs/cross.png"), 0.01)
 
@@ -75,7 +75,6 @@ class PlayerCar:
         vertical = math.cos(radians) * self.vel
         horizontal = math.sin(radians) * self.vel
         self.odom += abs(vertical) + abs(horizontal)
-        #print(self.odom)
         self.y -= vertical
         self.x -= horizontal
         
@@ -131,15 +130,10 @@ class PlayerCar:
         rt = []
         for i in range(len(data)):
             d = 1/(1+math.exp((-data[i]/15)+5))
-            #print(data[i] , d)
             rt.append(d)
-
-
-        
         return rt
     
         
-
     def train_ai(self,genomes, config,player_car):
         clock = pygame.time.Clock()
         images = [ (TRACK, (0, 0)),
@@ -148,14 +142,11 @@ class PlayerCar:
 
         self.check = False
         run = True
-        start_time = time.time()
+
         net = neat.nn.FeedForwardNetwork.create(genomes, config)
 
         while run:
-            
-
-
-            
+              
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     quit()
@@ -179,63 +170,48 @@ class PlayerCar:
                 WIN.blit(UPP, (500, 30))
                 self.move_forward(2)
             #pygame.display.update()
-            #player_car.draw(WIN)
-            #pygame.display.update()
-            #duration = time.time()- start_time
-
-
-            
+ 
             if player_car.collide(TRACK_BORDER_MASK) != None:
                 distance = math.sqrt((180-self.x)**2+(200-self.y)**2)
-
                 genomes.fitness  = round(self.odom)
-
-
+                if distance < 100:
+                    genomes.fitness = 0
                 return False
-            
-
-
-
-
         return False
     
-    
-    def test_ai(self, net,player_car):
-        clock = pygame.time.Clock()
-        images = [(GRASS, (0, 0)), (TRACK, (0, 0)),
-                (FINISH, FINISH_POSITION), (TRACK_BORDER, (0, 0))]
-        
 
+    def test_ai(self, net,player_car):
         
+        images = [ (BLOCK, (-400,0)),(TRACK, (0, 0)),
+                (FINISH, FINISH_POSITION), (TRACK_BORDER, (0, 0))]
         run = True
-        start_time = time.time()
          
         while run:
             
            
-            #draw(WIN, images, player_car)
+            
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     quit()
                     break
             
             output = net.activate(self.lidar())
-            
+            draw(WIN, images, player_car)
             if output[1] < 4:
-                #WIN.blit(LEFT, (500, 30))
+                WIN.blit(LEFT, (500, 30))
                 self.rotate(left=True)
             elif output[1] > 6:
-                #WIN.blit(RIGHT, (500, 30))
+                WIN.blit(RIGHT, (500, 30))
                 self.rotate(right=True)
             else:
                 pass
             if  output[0] < 5:
-                #WIN.blit(UP, (500, 30))
+                WIN.blit(UP, (500, 30))
                 self.move_forward(1)
             if output[0] > 5:
-                #WIN.blit(UPP, (500, 30))
+                WIN.blit(UPP, (500, 30))
                 self.move_forward(2)
-            player_car.draw(WIN)
+
             #pygame.display.update()
             pygame.display.update()
             
@@ -245,19 +221,10 @@ class PlayerCar:
 
 
 
-
-
-
-
 def draw(win, images, player_car):
     for img, pos in images:
         win.blit(img, pos)
-
-
-
     player_car.draw(win)
-    
-    #pygame.display.update()
 
 
 def move_player(player_car):
@@ -279,26 +246,17 @@ def move_player(player_car):
         player_car.reduce_speed()
 
      
-    
-
 def eval_genomes(genomes, config):
-    """
-    Run each genome against eachother one time to determine the fitness.
-    """
-    #width, height = 700, 500
-    #win = pygame.display.set_mode((width, height))
-    #pygame.display.set_caption("Pong")
+
+
     for genome_id1, genome1 in genomes:
-        #print(round(i/len(genomes) * 100), end=" ")
+
         genome1.fitness = 0 if genome1.fitness == None else genome1.fitness
         car = PlayerCar(4,4)
-        force_quit = car.train_ai(genome1, config,car)
-        #print(genome_id1)
+        car.train_ai(genome1, config,car)
+ 
         print("fitness:",genome1.fitness)
-        #if  genome_id1 > 10:
 
-            #print("fitness:",genome1.fitness)
-            
 
 
 def run_neat(config):
